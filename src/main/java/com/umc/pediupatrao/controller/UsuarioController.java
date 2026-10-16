@@ -40,21 +40,24 @@ public class UsuarioController {
     }
 
     // Endpoint para atualizar um usuário
+
     @PutMapping("/{id}")
-    public ResponseEntity<Usuario> atualizarUsuario(@PathVariable String id, @RequestBody Usuario usuarioAtualizado) {
-        Optional<Usuario> usuarioExistente = usuarioService.buscarPorId(id);
+    public ResponseEntity<Usuario> atualizarUsuario(
+            @PathVariable String id,
+            @RequestBody Usuario usuarioAtualizado) {
 
-        if (usuarioExistente.isPresent()) {
-            Usuario usuario = usuarioExistente.get();
-            usuario.setUsername(usuarioAtualizado.getUsername());
-            usuario.setPassword(usuarioAtualizado.getPassword());
-            usuarioService.salvarUsuario(usuario);
-
-            return ResponseEntity.ok(usuario);
-        } else {
+        if (usuarioService.buscarPorId(id).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+
+        usuarioService.atualizarUsuario(id, usuarioAtualizado);
+
+        Usuario usuario = usuarioService.buscarPorId(id).orElseThrow();
+        usuario.setPassword(null);
+
+        return ResponseEntity.ok(usuario);
     }
+
 
     // Endpoint para deletar um usuário
     @DeleteMapping("/{id}")
