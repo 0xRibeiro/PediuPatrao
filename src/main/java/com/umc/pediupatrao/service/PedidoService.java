@@ -129,4 +129,76 @@ public class PedidoService {
         return pedidoRepository.save(pedido);
     }
 
+
+
+    // confere se o pedido ainda pode ser alterado
+    private boolean podeAlterar(Pedido pedido) {
+        String status = pedido.getStatus();
+
+        return "RECEBIDO".equals(status)
+                || "EM_PREPARACAO".equals(status)
+                || "PRONTO".equals(status);
+    }
+
+    // aplica os desconto de ate 20%
+    public Pedido aplicarDesconto(String id, double percentual) {
+
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Pedido não encontrado."));
+
+        if (!podeAlterar(pedido)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Pedido não permite desconto.");
+        }
+
+        if (!Double.isFinite(percentual) || percentual <= 0 || percentual > 20) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Desconto deve ser entre 0 e 20%.");
+        }
+
+        // recalcula com os precos registrados nos itens
+        double total = 0;
+
+        if (pedido.getItens() == null || pedido.getItens().isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Pedido sem itens.");
+        }
+
+        for (ItemPedido item : pedido.getItens()) {
+            total += item.getPrecoUnitario() * item.getQuantidade();
+        }
+
+        pedido.setPercentualDesconto(percentual);
+        pedido.setValorTotal(
+                Math.round(total * (1 - percentual / 100) * 100.0) / 100.0
+        );
+
+        return pedidoRepository.save(pedido);
+    }
+
+    // Cancela o pedido com uma justificativa
+    public Pedido cancelarPedido(String id, String justificativa) {
+
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Pedido não encontrado."));
+
+        if (!podeAlterar(pedido)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Pedido não pode ser cancelado.");
+        }
+
+        if (justificativa == null || justificativa.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Informe a justificativa.");
+        }
+
+        pedido.setStatus("CANCELADO");
+        pedido.setJustificativaCancelamento(justificativa.trim());
+
+        return pedidoRepository.save(pedido);
+    }
+
+
 }

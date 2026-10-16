@@ -27,6 +27,24 @@ public class PedidoController {
     public Pedido atualizarStatus(@PathVariable String id, @RequestParam String status) {
         return pedidoService.atualizarStatus(id, status);
     }
-    
-    
+
+
+    // aplica desconto no pedido
+    @PutMapping("/{id}/desconto")
+    public Pedido aplicarDesconto(
+            @PathVariable String id,
+            @RequestParam double percentual) {
+
+        return pedidoService.aplicarDesconto(id, percentual);
+    }
+
+    // cancela o pedido informando o motivo
+    @PutMapping("/{id}/cancelar")
+    public Pedido cancelarPedido(
+            @PathVariable String id,
+            @RequestParam String justificativa) {
+
+        return pedidoService.cancelarPedido(id, justificativa);
+    }
+
 }
