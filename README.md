@@ -71,11 +71,3 @@ Para requisições POST/PUT/DELETE feitas fora dos formulários Thymeleaf, envie
 ## Verificações realizadas
 
 Foram testados os perfis ADMIN, GERENTE e ATENDENTE; bloqueios HTTP 403; criação de pedidos, cálculo do valor, transições de status, descontos válidos e inválidos, cancelamento, auditoria de pedidos e alteração de clientes, além da exigência do token CSRF nas APIs.
-
-## Organização
-
-O projeto mantém a estrutura original, com pacotes `entity`, `repository`, `service`, `controller` e `config`, reaproveitando classes existentes e acrescentando apenas as estruturas necessárias à auditoria e aos itens de pedido.
-
-## Observação
-
-Este é um projeto acadêmico para demonstração local. Antes de usar em produção, revise credenciais de inicialização, tratamento monetário (preferir `BigDecimal`) e demais políticas de segurança.
