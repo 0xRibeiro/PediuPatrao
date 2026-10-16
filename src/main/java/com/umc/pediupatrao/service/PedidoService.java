@@ -91,9 +91,42 @@ public class PedidoService {
         return pedidoRepository.findAll();
     }
 
+
     public Pedido atualizarStatus(String id, String status) {
-        Pedido pedido = pedidoRepository.findById(id).orElseThrow();
-        pedido.setStatus(status);
+
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Pedido não encontrado."));
+
+        String atual = pedido.getStatus() == null ? "" : pedido.getStatus();
+        String novo = status == null ? "" : status.trim().toUpperCase();
+
+        // confere se o pedido pode passar para o outro status
+        boolean permitido = switch (atual) {
+            case "RECEBIDO" -> novo.equals("EM_PREPARACAO");
+            case "EM_PREPARACAO" -> novo.equals("PRONTO");
+            case "PRONTO" -> novo.equals("SAIU_PARA_ENTREGA")
+                    || novo.equals("RETIRADO");
+            case "SAIU_PARA_ENTREGA", "RETIRADO" ->
+                    novo.equals("FINALIZADO");
+            default -> false;
+        };
+
+        if (!permitido) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Mudança de status inválida.");
+        }
+
+        // salva quem realizou a saida e quando
+        if (novo.equals("SAIU_PARA_ENTREGA") || novo.equals("RETIRADO")) {
+            pedido.setDataHoraSaida(LocalDateTime.now());
+            pedido.setResponsavelSaida(
+                    SecurityContextHolder.getContext()
+                            .getAuthentication().getName());
+        }
+
+        pedido.setStatus(novo);
         return pedidoRepository.save(pedido);
     }
+
 }
