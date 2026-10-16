@@ -5,6 +5,7 @@
 </head>
 <body>
 <div th:fragment="content">
+    <input type="hidden" id="csrfExcluirCliente" th:value="${_csrf.token}">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold mb-0">
             <i class="bi bi-person-raised-hand me-2 text-primary"></i>Clientes
@@ -85,9 +86,19 @@
             });
         }
 
+
         async function excluirCliente(id) {
             if (confirm('Tem certeza que deseja excluir este cliente?')) {
-                const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+
+                const token = document.getElementById('csrfExcluirCliente').value;
+
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': token
+                    }
+                });
+
                 if (response.ok) {
                     alert('Cliente excluído com sucesso!');
                     carregarClientes();
@@ -96,6 +107,7 @@
                 }
             }
         }
+
 
         carregarClientes();
     </script>
