@@ -6,9 +6,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class UsuarioService {
+
+    private static final Set<String> PERFIS_VALIDOS =
+            Set.of("ADMIN", "GERENTE", "ATENDENTE");
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
@@ -30,6 +34,7 @@ public class UsuarioService {
 
     // Salva um novo usuário (criptografando a senha)
     public void salvarUsuario(Usuario usuario) {
+        usuario.setRole(validarRoleDeUsuario(usuario.getRole()));
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword())); // Criptografa a senha
         usuarioRepository.save(usuario);
     }
@@ -46,16 +51,28 @@ public class UsuarioService {
 
     // Atualiza o usuário usuários
     public void atualizarUsuario(String id, Usuario usuarioAtualizado) {
+        String perfil = validarRoleDeUsuario(usuarioAtualizado.getRole());
+
         usuarioRepository.findById(id).ifPresent(usuarioExistente -> {
             usuarioExistente.setUsername(usuarioAtualizado.getUsername());
-            usuarioExistente.setRole(usuarioAtualizado.getRole());
+            usuarioExistente.setRole(perfil);
 
-            // Só atualiza a senha se uma nova foi informada
-            if (usuarioAtualizado.getPassword() != null && !usuarioAtualizado.getPassword().isBlank()) {
-                usuarioExistente.setPassword(passwordEncoder.encode(usuarioAtualizado.getPassword()));
+            if (usuarioAtualizado.getPassword() != null
+                    && !usuarioAtualizado.getPassword().isBlank()) {
+                usuarioExistente.setPassword(
+                        passwordEncoder.encode(usuarioAtualizado.getPassword())
+                );
             }
 
             usuarioRepository.save(usuarioExistente);
         });
+    }
+
+    private String validarRoleDeUsuario(String perfil) {
+        if (perfil == null || !PERFIS_VALIDOS.contains(perfil.trim().toUpperCase())) {
+            throw new IllegalArgumentException("Perfil inválido.");
+        }
+
+        return perfil.trim().toUpperCase();
     }
 }
