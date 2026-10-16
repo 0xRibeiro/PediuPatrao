@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import java.util.Map;
+import java.util.HashMap;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +25,9 @@ public class PedidoService {
 
     @Autowired
     private ProdutoRepository produtoRepository;
+
+    @Autowired
+    private AuditoriaService auditoriaService;
 
     public Pedido criarPedido(Pedido pedido) {
 
@@ -84,7 +89,25 @@ public class PedidoService {
         pedido.setDataHoraSaida(null);
         pedido.setJustificativaCancelamento(null);
 
-        return pedidoRepository.save(pedido);
+        Pedido salvo = pedidoRepository.save(pedido);
+
+// Registra a criacao do pedido na auditoria
+        auditoriaService.registrar(
+                "CRIAR_PEDIDO",
+                "Pedido",
+                salvo.getId(),
+                Map.of(),
+                Map.of(
+                        "itens", salvo.getItens(),
+                        "valorTotal", salvo.getValorTotal(),
+                        "status", salvo.getStatus(),
+                        "responsavelEntrada", salvo.getResponsavelEntrada(),
+                        "dataHoraEntrada", salvo.getDataHoraEntrada()
+                ),
+                null
+        );
+
+        return salvo;
     }
 
     public List<Pedido> listarPedidos() {
@@ -126,7 +149,35 @@ public class PedidoService {
         }
 
         pedido.setStatus(novo);
-        return pedidoRepository.save(pedido);
+
+        // salva os dados que mudaram
+        Map<String, Object> antes = new HashMap<>();
+        Map<String, Object> depois = new HashMap<>();
+
+        antes.put("status", atual);
+        depois.put("status", novo);
+
+        if (novo.equals("SAIU_PARA_ENTREGA") || novo.equals("RETIRADO")) {
+            antes.put("dataHoraSaida", null);
+            antes.put("responsavelSaida", null);
+
+            depois.put("dataHoraSaida", pedido.getDataHoraSaida());
+            depois.put("responsavelSaida", pedido.getResponsavelSaida());
+        }
+
+        Pedido salvo = pedidoRepository.save(pedido);
+
+        // Registra a mudanca de status
+        auditoriaService.registrar(
+                "ALTERAR_STATUS",
+                "Pedido",
+                salvo.getId(),
+                antes,
+                depois,
+                null
+        );
+
+        return salvo;
     }
 
 
@@ -169,12 +220,34 @@ public class PedidoService {
             total += item.getPrecoUnitario() * item.getQuantidade();
         }
 
+        double descontoAnterior = pedido.getPercentualDesconto();
+        double totalAnterior = pedido.getValorTotal();
+
         pedido.setPercentualDesconto(percentual);
         pedido.setValorTotal(
                 Math.round(total * (1 - percentual / 100) * 100.0) / 100.0
         );
 
-        return pedidoRepository.save(pedido);
+
+        Pedido salvo = pedidoRepository.save(pedido);
+
+        auditoriaService.registrar(
+                "APLICAR_DESCONTO",
+                "Pedido",
+                salvo.getId(),
+                Map.of(
+                        "percentualDesconto", descontoAnterior,
+                        "valorTotal", totalAnterior
+                ),
+                Map.of(
+                        "percentualDesconto", salvo.getPercentualDesconto(),
+                        "valorTotal", salvo.getValorTotal()
+                ),
+                null
+        );
+
+        return salvo;
+
     }
 
     // Cancela o pedido com uma justificativa
@@ -194,10 +267,34 @@ public class PedidoService {
                     HttpStatus.BAD_REQUEST, "Informe a justificativa.");
         }
 
+        String statusAnterior = pedido.getStatus();
+        String justificativaAnterior = pedido.getJustificativaCancelamento();
+
         pedido.setStatus("CANCELADO");
         pedido.setJustificativaCancelamento(justificativa.trim());
 
-        return pedidoRepository.save(pedido);
+
+        Pedido salvo = pedidoRepository.save(pedido);
+
+        Map<String, Object> antes = new HashMap<>();
+        antes.put("status", statusAnterior);
+        antes.put("justificativaCancelamento", justificativaAnterior);
+
+        Map<String, Object> depois = new HashMap<>();
+        depois.put("status", salvo.getStatus());
+        depois.put("justificativaCancelamento", salvo.getJustificativaCancelamento());
+
+        auditoriaService.registrar(
+                "CANCELAR_PEDIDO",
+                "Pedido",
+                salvo.getId(),
+                antes,
+                depois,
+                justificativa
+        );
+
+        return salvo;
+
     }
 
 
