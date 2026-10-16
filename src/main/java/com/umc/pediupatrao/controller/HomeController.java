@@ -47,10 +47,6 @@ public class HomeController {
         model.addAttribute("content", "home :: content");
         return "layout";
     }
-
-    // ========================
-    // USUÁRIOS
-    // ========================
     @GetMapping("/usuarios")
     public String listarUsuarios(Model model) {
         List<Usuario> usuarios = (List<Usuario>) usuarioService.listarTodos();
@@ -71,6 +67,7 @@ public class HomeController {
     public String editarUsuarioForm(@PathVariable String id, Model model,
             RedirectAttributes redirectAttributes) {
         boolean encontrado = usuarioService.buscarPorId(id).map(u -> {
+            u.setPassword(null);
             model.addAttribute("usuario", u);
             return true;
         }).orElse(false);
@@ -109,9 +106,6 @@ public class HomeController {
         return "redirect:/usuarios";
     }
 
-    // ========================
-    // PEDIDOS
-    // ========================
     @GetMapping("/pedidos")
     public String pedidos(Model model) {
         List<Pedido> pedidos = pedidoService.listarPedidos();
@@ -120,10 +114,6 @@ public class HomeController {
         log.info("Carregando fragmento: pedidos :: content");
         return "layout";
     }
-
-    // ========================
-    // PRODUTOS
-    // ========================
     @GetMapping("/produtos")
     public String produtos(Model model) {
         List<Produto> produtos = produtoService.listarProdutos();
@@ -133,9 +123,14 @@ public class HomeController {
         return "layout";
     }
 
-    // ========================
-    // CLIENTES
-    // ========================
+    // Salva o produto pelo formulario
+    @PostMapping("/produtos/salvar")
+    public String salvarProduto(@ModelAttribute Produto produto) {
+        produto.setId(null);
+        produtoService.salvar(produto);
+        return "redirect:/produtos";
+    }
+
     @GetMapping("/clientes")
     public String clientes(Model model) {
         List<Cliente> clientes = clienteService.listarClientes();
@@ -187,9 +182,6 @@ public class HomeController {
         return "redirect:/clientes";
     }
 
-    // ========================
-    // OUTRAS ROTAS
-    // ========================
     @GetMapping("/configuracoes")
     public String configuracoes(Model model) {
         model.addAttribute("content", "configuracoes :: content");
