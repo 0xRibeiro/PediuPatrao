@@ -2,6 +2,8 @@ package com.umc.pediupatrao.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.umc.pediupatrao.service.AuditoriaService;
+import org.springframework.security.core.Authentication;
 import com.umc.pediupatrao.entity.Cliente;
 import com.umc.pediupatrao.entity.Pedido;
 import com.umc.pediupatrao.entity.Produto;
@@ -106,14 +108,47 @@ public class HomeController {
         return "redirect:/usuarios";
     }
 
-    @GetMapping("/pedidos")
-    public String pedidos(Model model) {
-        List<Pedido> pedidos = pedidoService.listarPedidos();
-        model.addAttribute("pedidos", pedidos);
-        model.addAttribute("content", "pedidos :: content");
-        log.info("Carregando fragmento: pedidos :: content");
+    @Autowired
+    private AuditoriaService auditoriaService;
+
+    // Mostra o menu de auditoria somente para admin e gerente
+    @ModelAttribute("podeVerAuditoria")
+    public boolean podeVerAuditoria(Authentication authentication) {
+        return authentication != null &&
+                authentication.getAuthorities().stream().anyMatch(a ->
+                        a.getAuthority().equals("ROLE_ADMIN") ||
+                                a.getAuthority().equals("ROLE_GERENTE"));
+    }
+
+    // Pagina dos registros
+    @GetMapping("/auditoria")
+    public String auditoria(Model model) {
+        model.addAttribute("auditorias", auditoriaService.listar());
+        model.addAttribute("content", "auditoria :: content");
         return "layout";
     }
+
+    @GetMapping("/pedidos")
+    public String pedidos(Model model, Authentication authentication) {
+
+        model.addAttribute("pedidos", pedidoService.listarPedidos());
+        model.addAttribute("clientes", clienteService.listarClientes());
+        model.addAttribute("produtos", produtoService.listarProdutos());
+
+        // Verifica o perfil para mostrar os botoes certos
+        boolean gerente = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_GERENTE"));
+
+        boolean atendente = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ATENDENTE"));
+
+        model.addAttribute("podeEditarPedido", gerente || atendente);
+        model.addAttribute("podeGerenciarPedido", gerente);
+
+        model.addAttribute("content", "pedidos :: content");
+        return "layout";
+    }
+
     @GetMapping("/produtos")
     public String produtos(Model model) {
         List<Produto> produtos = produtoService.listarProdutos();
