@@ -21,6 +21,7 @@ public class DataInitializer {
                 Usuario user = new Usuario();
                 user.setUsername("admin");
                 user.setPassword(encoder.encode("teste123"));
+                user.setRole("ADMIN");
 
                 repo.save(user);
 
