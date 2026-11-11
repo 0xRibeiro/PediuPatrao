@@ -48,6 +48,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/css/**", "/dist/**", "/plugins/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/dashboard", "/api/dashboard").hasAnyRole("ADMIN", "GERENTE")
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
                         .requestMatchers("/admin").hasRole("ADMIN")
                         .requestMatchers("/api/usuarios", "/api/usuarios/**").hasRole("ADMIN")
@@ -76,6 +77,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/auditorias", "/api/auditorias/**").denyAll()
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
+                        (request, response, exception) -> response.sendError(401),
+                        request -> request.getServletPath().equals("/api/dashboard")
+                ))
                 .formLogin(form -> form
                         .loginPage("/login")
                         .permitAll()
