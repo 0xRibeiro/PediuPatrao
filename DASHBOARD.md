@@ -82,3 +82,5 @@ O `DashboardControllerTest` passou nos **8 testes** com `./mvnw test`. Foram ver
 ![Resultado dos oito testes do dashboard no terminal](teste-dashboard.png)
 
 A suíte usa MockMvc com um repositório simulado. A demonstração do painel com dados do MongoDB Atlas complementa essa evidência.
+
+Video explicativo: https://drive.google.com/drive/folders/1ljaVgM30-1qvwwqZ44fZlcNpSklIjZ09?usp=sharing
